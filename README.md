@@ -52,6 +52,7 @@ python3 kalender.py 2027 --format 6zoll --start 7 --ende 21 --out mein_kalender.
 | `a4` | 210 × 297 | A4 |
 | `7zoll` | 95 × 127 | Kobo Libra, Boox Page u. ä. |
 | `6zoll` | 90 × 120 | Kindle, Kobo Clara u. ä. |
+| `scribe3` | 168 × 224 | Kindle Scribe 3 |
 
 Weicht die Darstellung auf deinem Gerät ab (zu klein oder mit Rand), passe die Größen im Dictionary `FORMATE` in `kalender.py` an.
 
