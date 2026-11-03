@@ -81,3 +81,5 @@ python3 kalender.py 2027 --format 6zoll --start 8 --ende 20
 # Nur Wochenplanung am Vormittag, ohne Feiertage
 python3 kalender.py 2028 --start 6 --ende 13 --out vormittag_2028.pdf
 ```
+----
+Unter GPL-3.0-Lizenz
