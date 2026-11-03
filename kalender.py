@@ -58,10 +58,18 @@ def feiertage_laden(jahr, land):
     except ImportError:
         sys.exit("Für Feiertage wird das Paket 'holidays' benötigt: "
                  "pip install holidays")
-    return dict(holidays.Germany(subdiv=land, years=jahr, language="de"))
+    tage = dict(holidays.Germany(subdiv=land, years=jahr, language="de"))
+    # Oster- und Pfingstsonntag sind (außer in Brandenburg) keine gesetzlichen
+    # Feiertage, weil sie ohnehin Sonntage sind. Im Kalender sollen sie
+    # trotzdem erscheinen.
+    from dateutil.easter import easter  # wird mit 'holidays' installiert
+    ostern = easter(jahr)
+    tage.setdefault(ostern, "Ostersonntag")
+    tage.setdefault(ostern + datetime.timedelta(days=49), "Pfingstsonntag")
+    return tage
 
 
-def ferien_laden(jahr, land):
+def ferien_laden(jahr, land, neu_laden=False):
     """Schulferien {date: [namen]} über die OpenHolidays-API (mit Cache).
 
     Gibt bei Netzwerkproblemen eine Warnung aus und liefert {} zurück.
@@ -69,10 +77,15 @@ def ferien_laden(jahr, land):
     cache_dir = os.path.expanduser("~/.cache/kalender_ferien")
     cache = os.path.join(cache_dir, f"{land}_{jahr}.json")
     daten = None
-    if os.path.exists(cache):
+    if os.path.exists(cache) and not neu_laden:
         with open(cache, encoding="utf-8") as f:
-            daten = json.load(f)
-    else:
+            inhalt = json.load(f)
+        # Nur Cache-Dateien im neuen Format verwenden, die nachweislich zu
+        # diesem Bundesland und Jahr gehören. Alte Dateien werden neu geladen.
+        if (isinstance(inhalt, dict) and inhalt.get("land") == land
+                and inhalt.get("jahr") == jahr):
+            daten = inhalt["daten"]
+    if daten is None:
         # ab Dezember des Vorjahres, damit Weihnachtsferien erfasst werden
         query = urllib.parse.urlencode({
             "countryIsoCode": "DE", "subdivisionCode": f"DE-{land}",
@@ -85,26 +98,48 @@ def ferien_laden(jahr, land):
                 daten = json.load(r)
             os.makedirs(cache_dir, exist_ok=True)
             with open(cache, "w", encoding="utf-8") as f:
-                json.dump(daten, f, ensure_ascii=False)
+                json.dump({"land": land, "jahr": jahr, "daten": daten}, f,
+                          ensure_ascii=False)
         except Exception as e:  # Netzwerk, JSON, ...
             print(f"WARNUNG: Schulferien konnten nicht geladen werden ({e}). "
                   "Kalender wird ohne Ferien erstellt.", file=sys.stderr)
             return {}
-    return ferien_aus_api(daten, jahr)
+    return ferien_aus_api(daten, jahr, land)
 
 
-def ferien_aus_api(daten, jahr):
+def gilt_fuer_land(eintrag, land):
+    """True, wenn der API-Eintrag für das Bundesland gilt."""
+    if eintrag.get("nationwide"):
+        return True
+    codes = {s.get("code", "") for s in eintrag.get("subdivisions", [])}
+    return f"DE-{land}" in codes
+
+
+def ferien_aus_api(daten, jahr, land):
     ergebnis = {}
+    zeitraeume = []
     for eintrag in daten:
+        # zusätzliche Absicherung: Einträge anderer Bundesländer verwerfen
+        if not gilt_fuer_land(eintrag, land):
+            continue
         namen = eintrag.get("name", [])
         name = next((n["text"] for n in namen if n.get("language") == "DE"),
                     namen[0]["text"] if namen else "Ferien")
-        d = datetime.date.fromisoformat(eintrag["startDate"])
+        start = datetime.date.fromisoformat(eintrag["startDate"])
         ende = datetime.date.fromisoformat(eintrag["endDate"])
+        if start.year > jahr or ende.year < jahr:
+            continue
+        zeitraeume.append((start, ende, name))
+        d = start
         while d <= ende:
             if d.year == jahr:
-                ergebnis.setdefault(d, []).append(name)
+                liste = ergebnis.setdefault(d, [])
+                if name not in liste:
+                    liste.append(name)
             d += datetime.timedelta(days=1)
+    # Übersicht zur Kontrolle ausgeben
+    for start, ende, name in sorted(zeitraeume):
+        print(f"  {name:<20} {start:%d.%m.%Y} – {ende:%d.%m.%Y}")
     return ergebnis
 
 
@@ -290,6 +325,8 @@ def main():
                    help="Bundesland für Feiertage: " + ", ".join(BUNDESLAENDER))
     p.add_argument("--ferien", action="store_true",
                    help="Schulferien des Bundeslands anzeigen (braucht --bundesland)")
+    p.add_argument("--ferien-neu", action="store_true",
+                   help="Schulferien neu herunterladen statt den Cache zu nutzen")
     p.add_argument("--out", help="Dateiname (Standard: kalender_<jahr>.pdf)")
     a = p.parse_args()
 
@@ -307,7 +344,9 @@ def main():
         p.error("--ferien braucht --bundesland, z. B. --bundesland BW")
 
     feiertage = feiertage_laden(jahr, land) if land else {}
-    ferien = ferien_laden(jahr, land) if (land and a.ferien) else {}
+    if land and a.ferien:
+        print(f"Schulferien {BUNDESLAENDER[land]} {jahr}:")
+    ferien = ferien_laden(jahr, land, a.ferien_neu) if (land and a.ferien) else {}
     if land:
         print(f"{BUNDESLAENDER[land]}: {len(feiertage)} Feiertage"
               + (f", {len(ferien)} Ferientage" if a.ferien else ""))
