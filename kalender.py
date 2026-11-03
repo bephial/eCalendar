@@ -38,6 +38,7 @@ FORMATE = {
     "boox": (158 * mm, 210 * mm),         # Boox Note/Tab (10,3")
     "7zoll": (95 * mm, 127 * mm),         # Kobo Libra, Boox Page, ...
     "6zoll": (90 * mm, 120 * mm),         # Kindle, Kobo Clara, ...
+    "scribe3": (168 * mm, 224 * mm),      # Kindle Scribe 3
 }
 
 BUNDESLAENDER = {
