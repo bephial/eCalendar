@@ -39,6 +39,7 @@ python3 kalender.py 2027 --format 6zoll --start 7 --ende 21 --out mein_kalender.
 | `--ende` | Ende der Timeline (bis 24); es muss `start < ende` gelten | `22` |
 | `--bundesland KÜRZEL` | Bundesland für gesetzliche Feiertage, siehe unten | keins |
 | `--ferien` | Zeigt zusätzlich die Schulferien des Bundeslands an. Benötigt `--bundesland`. | aus |
+| `--ferien-neu` | Erzwingt, dass Feriendaten neu geladen werden. | |
 | `--out DATEI` | Name der Ausgabedatei | `kalender_<jahr>.pdf` |
 | `-h`, `--help` | Hilfe anzeigen | |
 
@@ -69,6 +70,7 @@ Groß- und Kleinschreibung spielen keine Rolle.
 - Ferien erscheinen nur für Tage innerhalb des gewählten Jahres. Weihnachtsferien, die im Dezember des Vorjahres beginnen, sind also ab dem 1. Januar eingetragen.
 - Ändern sich Ferientermine nachträglich, lösche die zugehörige Datei im Cache-Ordner, damit sie neu geladen wird.
 - Die Ferientermine stammen aus einer Community-Datenbank (Lizenz ODbL). Prüfe sie bei wichtigen Terminen gegen die Angaben des zuständigen Kultusministeriums.
+- Ostersonntag und Pfingstsonntag werden deutschlandweit als Feiertage angezeigt, auch in den Bundesländern, in denen sie keine gesetzlichen Feiertage sind.
 
 ## Beispiele
 
