@@ -86,3 +86,4 @@ python3 kalender.py 2028 --start 6 --ende 13 --out vormittag_2028.pdf
 ```
 ----
 Unter GPL-3.0-Lizenz
+Die Software wird so angeboten, wie sie ist.
